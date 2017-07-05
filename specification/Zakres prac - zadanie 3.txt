@@ -1,0 +1,41 @@
+Zadanie 3: Przygotowanie programowych narzêdzi pomocniczych do obliczeñ numerycznych rakiet i ich elementów
+
+Zakres prac:
+
+Celem jest przygotowanie zestawu skryptów/programów i plików wsadowych (journali) pozwalaj¹cych na przyspieszenie i wzglêdn¹ automatyzacjê procesu przygotowania przypadków obliczeniowych i post-processingu wyników pod k¹tem póŸniejszej symulacji lotu pocisku rakietowego przez zespó³ symulacyjny.
+
+W zakresie przygotowania symulacji i okreœlenia plików wynikowych:
+- kluczowym zadaniem jest przygotowanie pliku wsadowego (journal), który definiowa³ by³ wszystkie parametry symulacji pocz¹wszy od wczytania przygotowanej siatki obliczeniowej (plik .msh). Ze wzglêdu na to, ¿e nie da siê przewidzieæ a priori liczby i wszystkich nazw nadawanym elementom domeny obliczeniowej, jak równie¿ nazwy pliku z siatk¹ journal nale¿y przygotowaæ w oparciu o przygotowan¹ ju¿ wczeœniej siatkê o zadanej nazwie. Konieczne jest umieszczenie w kodzie komentarzy objaœniaj¹cych umo¿liwiaj¹cych zmianê nazw warunków brzegowych, ustawieñ solwera, nazwy siatki itd. Kompletny journal powinien zawieraæ instrukcje:
+- wczytania siatki
+- wybrania solwera density-based
+- sformu³owania stacjonarnoœci symulacji
+- w³¹czenie równania energii
+- okreœlenia modelu turbulencji S-A oraz k-w SST z domyœlnymi sta³ymi, korekcj¹ krzywizny oraz w przypadku k-w poprawek zwi¹zanych z modelowaniem niskich liczb Reynoldsa i aktywowanym limiterem produkcji Turbulent Kinetic Energy
+- okreœlenie w³aœciwoœci powietrza jako gazu doskona³ego, lepkoœci dynamicznej wed³ug regu³y Sutherlanda i przewodnosci cieplnej oraz ciep³a w³aœciwego jako wielomianowe funkcje temperatury (wzory podane przez zlecaj¹cego)
+- Ustawienie Operating Conditions na 0 Pa
+- mo¿liwoœæ zadania Moving Reference Frame wokó³ osi x z okreœlon¹ prêdkoœci¹ obrotow¹ dla ca³ej domeny obliczeniowej
+- definicjê warunku brzegowego dalekiego pola z okreœleniem liczby Macha, wektora kierunkowego, intensywnoœci turbulencji, temperatury, wspó³czynnika lepkoœci itd.
+- definicjê wylotowego warunku brzegowego (pressure-outlet) z zadanym ciœnieniem i temperatur¹
+- mo¿liwoœæ definicji warunku brzegowego periodycznoœci na wybranych powierzchniach
+- mo¿liwoœæ definicji warunku brzegowego symetrii na wybranych powierzchniach
+- ustawienie wartoœci referencyjnych na podstawie warunku brzegowego dalekiego pola, a pole i d³ugoœæ odniesienia dla wartoœci przyk³adowych (podanych przez zlecaj¹cego i zmienianych w przysz³oœci przez u¿ytkownika journala)
+- definicjê ustawieñ solwera przep³ywowego: schemat niejawny (implicit), schemat rozwi¹zywania Roe-FDS i AUSM (nale¿y w kodzie umieœciæ komendy dla obu), Gradienty wyznaczane metod¹ Least Squares Cell Based, dyskretyzacja równañ pêdu, energii i turbulencji drugiego rzêdu (nale¿y te¿ umieœciæ opcjê na pierwszy rz¹d)
+- mo¿liwoœæ w³¹czenia High Order Term Relaxation
+- mo¿liwoœæ w³¹czenia Convergence Acceleration For Stretched Meshes
+- ustawienie kryterium zbie¿noœci równañ pêdu, energii i turbulencji na poziomie 10^-5
+- ustawienie monitorów sily noœnej (Cl i Cy), oporu (Cd) i momentu pochylaj¹cego (oœ i miejsce wzglêdem którego jest on liczony okreœla zleceniodawca, dostarcza przyk³adowe dane). Nale¿y zapewniæ mo¿liwoœæ logowania danych do plików. Wartoœci wspó³czynników nale¿y uœredniaæ (z ostatnich 100 iteracji).
+- ustawienie dodatkowych kryteriów zbie¿noœci (wspó³czynników Cz, Cy, Cx, My) na poziomie 10^-5, Iloœæ iteracji do rozwa¿enia - 5, iloœæ pierwszych iteracji do zignorowania - 100
+- inicjalizacji rozwi¹zania metod¹ hybrydow¹ (100 iteracji, parametr External Aero-Favourable settings w³¹czony, parametry turbulencji to¿same z warunkiem brzegowym dalekiego pola)
+- autozapis pliku .dat co 2500 iteracji
+- uruchomienia symulacji na 5000 iteracji
+- po wykonaniu iteracji zapis do plików raportów si³ (3 osie niezale¿nie), momentów (3 osie niezale¿nie dla 1 œrodka momentu) i œrodków parcia (dla y=0 i z=0). Dok³adne parametry uk³adów odniesienia okreœla zleceniodawca.
+- po wykonaniu symulacji - zapis wynikowych plików .cas i .dat
+- zamkniêcie programu
+
+Za³o¿eniem komentarzy jest dokumentacja journala i zapewnienie jego wzglêdnej uniwersalnoœci (np. podanie 2 ró¿nych modeli turbulencji, z czego jeden mo¿na wykomentowaæ i go tym samym zdeaktywowaæ). Nale¿y za³o¿yæ, ¿e journalem bêd¹ siê pos³ugiwaæ osoby zaznajomione ze Fluentem, st¹d nie ma potrzeby komentowania ka¿dej linijki kodu. Przyk³adowy journal realizuj¹cy czêœæ z podanych powy¿ej funkcjonalnoœci zostanie dostarczony przez zlecaj¹cego wraz z case'm do którego siê on aplikuje.
+ 
+W zakresie post-processingu:
+- opracowanie skryptu Phyton, b¹dŸ np. programu C/C++ (dobór konkretnego narzêdzia pozostawiam do decyzji wykonawcy, przy jednoczesnej akceptacji zlecajacego), który z kilku niezale¿nych plików wynikowych (raporty si³, momentów i CoP) z³o¿y jeden plik wynikowy o okreœlonej strukturze. Przyk³adowy plik wynikowy zostanie dostarczony przez zlecajacego. Zadanie ma na celu uporz¹dkowanie danych w œciœle okreœlony sposób - nie ma tutaj ¿adnej obróbki wyników
+- opracowanie skryptu Phyton, b¹dŸ np. programu C/C++ (dobór konkretnego narzêdzia pozostawiam do decyzji wykonawcy, przy jednoczesnej akceptacji zlecajacego), który w ramach katalogu zawieraj¹cego wymienione powy¿ej pliki wynikowe zbuduje zbiorcz¹ tabelê (excel) z uszeregowanymi wartoœciami wszystkich wspó³czynników w funkcji k¹ta natarcia, k¹ta wychylenia steru i liczby Macha. Kluczem porz¹dkowym jest nazwa pliku wynikowego oraz nag³ówek w samym pliku. Zadanie ma na celu uporz¹dkowanie danych w œciœle okreœlony sposób - nie ma tutaj ¿adnej obróbki wyników
+- opracowanie skryptu, który na bazie przedstawionej powy¿ej tabeli umo¿liwi zobrazowanie graficzne zmian wspó³czynników i wêdrówki œrodka parcia w funkcji k¹ta natarcia, k¹ta wychylenia steru i liczby Macha. Dopuszczalne jest by wynikiem by³ plik wsadowy do Tecplota
+- opracowanie skryptu Phyton, b¹dŸ np. programu C/C++ (dobór konkretnego narzêdzia pozostawiam do decyzji wykonawcy, przy jednoczesnej akceptacji zlecajacego), który na podstawie pliku zawieraj¹cego dane o wyliczy kierunek i zwrot wypadkowej si³y aerodynamicznej dzia³aj¹cej na obiekt (wyznaczenie równania prostej na podstawie 2 wspó³rzêdnych wyznaczonych za pomoc¹ raportu CoP)
