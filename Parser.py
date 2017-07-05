@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
 import os
-from os import path
+import re
 import json
 
 """
@@ -53,7 +53,6 @@ class LogParser:
         self.path = path
 
     def parse(self):
-        import re
 
         line = ""
         with open(self.path, "r") as f:
@@ -91,8 +90,6 @@ class LogParser:
 
             residualValues = tmp
 
-
-
         nIter = int(residualValues[0])
 
         residualNames = residualNames[1:-1]
@@ -104,6 +101,44 @@ class LogParser:
                 "residualValues": residualValues}
 
 
+class ForceParser:
+    def __init__(self, path):
+        self.path = path
+
+        self.titles = []
+        self.tableNames = []
+        self.lineProcessor = self.parseTitle
+
+    def parseTitle(self, line):
+
+        print "line:", line
+
+        res = re.search(r'\s*^"([a-z-A-Z]+)^"\s*', line)
+
+        if res:
+            print "force name:", res.group(0)[0]
+            self.titles.append(res.group(0)[0])
+            self.lineProcessor = self.parseTableNames
+        # else:
+        #     raise Exception("Could not read the force title name")
+
+
+    def parseTableNames(self, line):
+        self.lineProcessor = None
+
+    def parse(self):
+
+        with open(self.path, "r") as fptr:
+            line=""
+            for line in fptr:
+                if self.lineProcessor is not None:
+                    break
+
+                self.lineProcessor(line)
+
+
+
+
 
 
 
@@ -112,22 +147,23 @@ class LogParser:
 
 if __name__ == "__main__":
 
-    baseDir = "/home/wgryglas/Desktop/Bartek-szajs/VISCID BLOCK - surowe"
-    outFile = "/home/wgryglas/Desktop/Bartek-szajs/output.json" #"output.json"
+    baseDir = "specification/VISCID BLOCK - surowe"
+    outFile = "output.json"
 
     resultDict = dict()
 
-    parsers = {"fluent log": LogParser(baseDir + os.sep + "fluent_log.log")}
+    parsers = {"fluent log": LogParser(baseDir + os.sep + "fluent_log.log"),
+               "FX": ForceParser(baseDir + os.sep + "FX")}
 
     for name in parsers:
         parser = parsers[name]
         try:
             resultDict.update(parser.parse())
         except Exception as e:
-            print "Parser "+name+" error.\nCouldn't parse the " + path.basename(parser.path) + " file\n"+e.message+"\n"
+            print "Parser "+name+" error.\nCouldn't parse the " + os.path.basename(parser.path) + " file\n"+e.message+"\n"
 
     with open(outFile, "w") as filePtr:
-        json.dump(resultDict, filePtr)
+        json.dump(resultDict, filePtr, indent=2)
 
 
 
