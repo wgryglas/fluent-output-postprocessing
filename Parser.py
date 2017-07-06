@@ -3,6 +3,7 @@
 import os
 import re
 import json
+import numpy as np
 
 """
 Program which converts the set of output Fluent files into single JSON data structure file. The JSON data file
@@ -179,14 +180,28 @@ class LogParser:
     def parseMachAlphaBoundaryCondition(self):
         #pressurefarfield no 89875. no 1.10 no 281.65 yes no -1. no 5e-5 no 0. no no yes 0.1 50.
 
-        reg = re.compile(r'\s*pressurefarfield((\s*no)*|(\s*yes)*([^\s]+))*')
+        prevLine = re.compile(r'\(pressurefarfield\)')
 
+        found = False
         with open(self.path, "r") as f:
-            line = f.readline()
-            res = reg.search(line)
+            for line in f.readlines():
+                if found:
+                    res = re.split(r'\s+', line.strip().replace("no", "").replace("yes", ""))
+                    res = map(float, res[1:])
+                    farField = dict()
+                    farField["static_pressure"] = res[0]
+                    farField["mach"] = res[1]
+                    farField["temperature"] = res[2]
+                    farField["alpha"] = np.arctan(res[4]/res[3])/np.pi*180
+                    self.output["farFieldConditions"] = farField
+                    break
 
-            if res:
-                print "Found! ", res.groups()
+                if prevLine.search(line):
+                    found = True
+
+        if not found:
+            print "The boundary conditions setup not found"
+
 
     def parseIterNumberAndResiduals(self):
         lineBuffer = []
@@ -222,7 +237,7 @@ class LogParser:
     def parse(self):
         self.parseCaseName()
         self.parseIterNumberAndResiduals()
-        # self.parseMachAlphaBoundaryCondition()
+        self.parseMachAlphaBoundaryCondition()
 
 
 class ForceParser:
@@ -244,7 +259,7 @@ class ForceParser:
     def parseDocumentTitle(self, line):
         title = re.search(r'"Force Report"', line)
         if not title:
-            raise "The file " + self.path + " does not seems to be force report. Can't parse it"
+            raise "The file " + self.path + " does not seems to be Force Rreport. Can't parse it"
 
         self.lineProcessor = self.parseForceTitle
 
@@ -398,7 +413,18 @@ class ForceParser:
 #             if len(parser.output) != 0:
 #                 resultDict[name] = parser.output
 
+def writeCSV(fptr, titles, array2D):
+    for name in titles[:-1]:
+        fptr.write(name+",")
+    fptr.write(titles[-1]+"\n")
 
+    for rowId, row in enumerate(array2D):
+        for element in row[:-1]:
+            fptr.write(str(element)+",")
+        newline = '\n'
+        if rowId < len(array2D)-1:
+            newline = ''
+        fptr.write(str(row[-1]) + newline)
 
 if __name__ == "__main__":
 
@@ -434,16 +460,12 @@ if __name__ == "__main__":
         json.dump(resultDict, filePtr, indent=4)
 
 
-    forceXTab =  resultDict["FX"]["Forces Global"]["Coefficients"]["Total"]["Net"]
-    forceYTab = resultDict["FY"]["Forces Global"]["Coefficients"]["Total"]["Net"]
-
-    for x, y in zip(forceXTab, forceYTab):
-            print "%lf" % (x - y)
-
+    # Example of usage:
+    mach = resultDict["Log"]["farFieldConditions"]["mach"]
+    alpha = resultDict["Log"]["farFieldConditions"]["alpha"]
 
     cxGlobal, cyGlobal, czGlobal = resultDict["FX"]["Forces Global"]["Coefficients"]["Total"]["Net"]
     cmxGlobal, cmyGlobal, cmzGlobal = resultDict["MX"]["Moments - Moment Center (-1.1323 0 0)"]["Coefficients"]["Total"]["Net"]
-
 
     cxDV = resultDict["FX"]["Forces - Direction Vector (1 0 0)"]["Coefficients"]["Total"]["Net"]
     cyDV = resultDict["FY"]["Forces - Direction Vector (0 1 0)"]["Coefficients"]["Total"]["Net"]
@@ -453,6 +475,13 @@ if __name__ == "__main__":
     cmyDV = resultDict["MY"]["Moments - Moment Center (-1.1323 0 0) Moment Axis (0 1 0)"]["Coefficients"]["Total"]["Net"]
     cmzDV = resultDict["MZ"]["Moments - Moment Center (-1.1323 0 0) Moment Axis (0 0 1)"]["Coefficients"]["Total"]["Net"]
 
-    print cxGlobal, cyGlobal, czGlobal, cmxGlobal, cmyGlobal, cmzGlobal, cxDV, cyDV, czDV, cmxDV, cmyDV, cmzDV
+    titles = ['mach', 'alpha',
+              'CX-global', 'CY-global', 'CZ-global', 'CMX-global', 'CMY-global', 'CMZ-global',
+              'CX-dir', 'CY-dir', 'CZ-dir', 'CMX-dir', 'CMY-dir', 'CMZ-dir']
+    data = [[mach, alpha,
+            cxGlobal, cyGlobal, czGlobal, cmxGlobal, cmyGlobal, cmzGlobal,
+            cxDV, cyDV, czDV, cmxDV, cmyDV, cmzDV]]
 
-    # print resultDict["FY"]["Forces - Direction Vector (1 0 0)"]["Coefficients"]["Total"]["Net"]
+    with open("output.csv", "w") as f:
+        writeCSV(f, titles, data)
+
