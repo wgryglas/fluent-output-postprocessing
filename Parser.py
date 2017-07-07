@@ -19,7 +19,7 @@ from Parser import read
 import os
 import matplotlib.pyplot as plt
 
-fileObject = read("output.json")
+fileObject = Data("output.json")
 
 print fileObject["FX"]["Forces (n)"]["Pressure"]["korpus"]
 print fileObject.FX.Forces_n.Pressure.korpus
@@ -178,7 +178,7 @@ class LogParser:
         self.output["caseName"] = caseName
 
     def parseMachAlphaBoundaryCondition(self):
-        #pressurefarfield no 89875. no 1.10 no 281.65 yes no -1. no 5e-5 no 0. no no yes 0.1 50.
+        # pressurefarfield no 89875. no 1.10 no 281.65 yes no -1. no 5e-5 no 0. no no yes 0.1 50.
 
         prevLine = re.compile(r'\(pressurefarfield\)')
 
@@ -192,7 +192,7 @@ class LogParser:
                     farField["static_pressure"] = res[0]
                     farField["mach"] = res[1]
                     farField["temperature"] = res[2]
-                    farField["alpha"] = np.arctan(res[4]/res[3])/np.pi*180
+                    farField["alpha"] = np.arctan(res[5] / res[3]) / np.pi * 180
                     self.output["farFieldConditions"] = farField
                     break
 
@@ -201,7 +201,6 @@ class LogParser:
 
         if not found:
             print "The boundary conditions setup not found"
-
 
     def parseIterNumberAndResiduals(self):
         lineBuffer = []
@@ -256,6 +255,9 @@ class ForceParser:
 
         self.singleForce = singleForce
 
+        self.additionalForceDefinition = []
+
+
     def parseDocumentTitle(self, line):
         title = re.search(r'"Force Report"', line)
         if not title:
@@ -264,7 +266,6 @@ class ForceParser:
         self.lineProcessor = self.parseForceTitle
 
     def parseForceTitle(self, line):
-
         # For more than one force calculation
         if not self.singleForce:
 
@@ -273,20 +274,33 @@ class ForceParser:
             if len(line) == 0 or line[0] == "\"":
                 return
 
-            name = re.search(r'\s*([^\s]+(\s{1,3}?[^\s]+)*)\s*', line)
+            names = re.findall(r'(([^\s][^\(]*)\s(\([^\)]+\)))', line)
 
-            if not name:
-                self.lineProcessor = None
-                return
+            self.forceDict = dict()
+
+            fullname = ""
+            if len(names) > 0:
+                for i, name in enumerate(names):
+                    fullname += name[1]
+                    if i < len(names) - 1:
+                        fullname += " "
+
+                    additional = name[1]
+                    if re.search(r'-', additional):
+                        additional = additional.split("-")[1].strip()
+
+                    self.forceDict[additional] = map(float, re.split(r'\s+', name[2][1:-1]))
+                    self.additionalForceDefinition.append(additional)
             else:
-                name = name.group(0)
-
-            if name == "Forces":
-                name = name + " Global"
+                name = re.search(r'\s*([^\s]+(\s{1,3}?[^\s]+)*)\s*', line)
+                if not name:
+                    self.lineProcessor = None
+                    return
+                else:
+                    fullname = name.group(0)
 
             # Append empty force
-            self.forceDict = dict()
-            self.output[name] = self.forceDict
+            self.output[fullname] = self.forceDict
 
         else:  # When only single output is present, e. g. the CoPy file
             self.output = self.forceDict
@@ -314,15 +328,20 @@ class ForceParser:
 
         forceNames = res[1:]
 
-        nGroups = len(self.forceDict)
-
+        nGroups = len(self.forceDict) - len(self.additionalForceDefinition)
         nForceTypes = int(len(forceNames) / nGroups)
 
         # Append force names to dictionary
-        for grId, groupName in enumerate(self.forceDict):
+        grId = 0
+        for groupName in self.forceDict:
+            if groupName in self.additionalForceDefinition:
+                continue
+
             forceGroupDic = self.forceDict[groupName]
             for fid in range(nForceTypes):
                 forceGroupDic[forceNames[grId * nForceTypes + fid]] = dict()
+
+            grId += 1
 
         self.lineProcessor = self.parseForceValuesAndAssignToZone
 
@@ -350,18 +369,23 @@ class ForceParser:
             self.lineProcessor = None
             return
 
-        nGroups = len(self.forceDict)
-
+        nGroups = len(self.forceDict) - len(self.additionalForceDefinition)
         nForceTypes = len(values) / nGroups
 
-        for grId, groupName in enumerate(self.forceDict):
+        grId = 0
+        for groupName in self.forceDict:
+            if groupName in self.additionalForceDefinition:
+                continue
+
             forceGroupDic = self.forceDict[groupName]
             for fid, forceName in enumerate(forceGroupDic):
                 forceGroupDic[forceName][zoneName] = values[grId * nForceTypes + fid]
+            grId += 1
 
         if self.lastForce:
             self.lastForce = False
             self.lineProcessor = self.parseForceTitle
+            self.additionalForceDefinition = []
 
     def parse(self):
         with open(self.path, "r") as fptr:
@@ -379,109 +403,191 @@ class ForceParser:
                 self.lineProcessor(line)
 
 
-# class DirectoryParser:
-#     def __init__(self, directoryPath, outputFile=None):
-#         self.directory = directoryPath
-#         if not outputFile:
-#             self.output = self.directory + os.sep + "output.json"
-#         else:
-#             self.output = outputFile
-#
-#     def convert(self):
-#         parsers = { "Log": LogParser(self.directory + os.sep + "fluent_log.log"),
-#                     "FX": ForceParser(self.directory + os.sep + "FX"),
-#                     "FY": ForceParser(self.directory + os.sep + "FY"),
-#                     "FZ": ForceParser(self.directory + os.sep + "FZ"),
-#                     "MX": ForceParser(self.directory + os.sep + "MX"),
-#                     "MY": ForceParser(self.directory + os.sep + "MX"),
-#                     "MZ": ForceParser(self.directory + os.sep + "MX"),
-#                     "CoPy": ForceParser(self.directory + os.sep + "CoPy", singleForce=True),
-#                     "CoPz": ForceParser(self.directory + os.sep + "CoPz", singleForce=True)}
-#
-#         resultDict = dict()
-#
-#         for name in parsers:
-#             parser = parsers[name]
-#             try:
-#                 parser.parse()
-#             except IOError:
-#                 print "Parser " + name + " error.\nCouldn't open file " + os.path.basename(parser.path)
-#             except Exception as e:
-#                 print "Parser " + name + " error.\nCouldn't parse the " + os.path.basename(
-#                     parser.path) + " file\n" + e.message + "\n"
-#
-#             if len(parser.output) != 0:
-#                 resultDict[name] = parser.output
+FILES = {"Log" : "fluent_log.log",
+         "FX"  : "FX",
+         "FY"  : "FY",
+         "FZ"  : "FZ",
+         "MX"  : "MX",
+         "MY"  : "MY",
+         "MZ"  : "MZ",
+         "CoPy": "CoPy",
+         "CoPz": "CoPz"}
+
+class DirectoryParser:
+    def __init__(self, directoryPath):
+        self.directory = directoryPath
+
+        self.data = dict()
+
+    def load(self):
+        parsers = {"Log": LogParser(self.directory + os.sep + FILES["Log"]),
+                   "FX": ForceParser(self.directory + os.sep + FILES["FX"]),
+                   "FY": ForceParser(self.directory + os.sep + FILES["FY"]),
+                   "FZ": ForceParser(self.directory + os.sep + FILES["FZ"]),
+                   "MX": ForceParser(self.directory + os.sep + FILES["MX"]),
+                   "MY": ForceParser(self.directory + os.sep + FILES["MY"]),
+                   "MZ": ForceParser(self.directory + os.sep + FILES["MZ"]),
+                   "CoPy": ForceParser(self.directory + os.sep + FILES["CoPy"], singleForce=True),
+                   "CoPz": ForceParser(self.directory + os.sep + FILES["CoPz"], singleForce=True)}
+
+        for name in parsers:
+            parser = parsers[name]
+            try:
+                parser.parse()
+            except IOError:
+                print "Parser " + name + " error.\nCouldn't open file " + os.path.basename(parser.path)
+            except Exception as e:
+                print "Parser " + name + " error.\nCouldn't parse the " + os.path.basename(
+                    parser.path) + " file\n" + e.message + "\n"
+
+            if len(parser.output) != 0:
+                self.data[name] = parser.output
+
+    def dump(self, outputFile=None):
+        if not outputFile:
+            outputFile = "output.json"
+
+        with open(outputFile, 'w') as fptr:
+            json.dump(self.data, fptr, indent=4)
+
 
 def writeCSV(fptr, titles, array2D):
     for name in titles[:-1]:
-        fptr.write(name+",")
-    fptr.write(titles[-1]+"\n")
+        fptr.write(name + ",")
+    fptr.write(titles[-1] + "\n")
 
     for rowId, row in enumerate(array2D):
         for element in row[:-1]:
-            fptr.write(str(element)+",")
+            fptr.write(str(element) + ",")
         newline = '\n'
-        if rowId < len(array2D)-1:
+        if rowId > len(array2D) - 1:
             newline = ''
         fptr.write(str(row[-1]) + newline)
 
+class Data:
+    def __init__(self, jsonPathOrDataDict):
+
+        self.data = dict()
+
+        if type(jsonPathOrDataDict) is str:
+            with open(jsonPathOrDataDict, 'r') as fptr:
+                self.data = json.load(fptr)
+        elif type(jsonPathOrDataDict) is dict:
+            self.data = jsonPathOrDataDict
+        else:
+            raise Exception("Data class constructor accepts only data dictionary or a path to a json dumped dictionary")
+
+        self.simpleKeys = []
+
+        self.__construct__accssors()
+
+    def __construct__accssors(self):
+        sources = [self.data]
+        targets = [self.__dict__]
+
+        for key in self.data:
+            newKey = re.sub('\(|\)|\-|=', ' ', key).strip()
+            newKey = re.sub('\s+', '_', newKey)
+
+            self.simpleKeys.append(newKey)
+
+            if type(self.data[key]) is dict:
+                self.__dict__[newKey] = Data(self.data[key])
+            else:
+                self.__dict__[newKey] = self.data[key]
+
+        # while len(sources) > 0:
+        #     newSources = []
+        #     newTargets = []
+        #
+        #     for i, source in enumerate(sources):
+        #         target = targets[i]
+        #
+        #         for key in source:
+        #             newKey = re.sub('\(|\)|\-', ' ', key).strip()
+        #             newKey = re.sub('\s+', '_', newKey)
+        #
+        #             if type(source[key]) is dict:
+        #                 target[newKey] = dict()
+        #                 newTargets.append(target[newKey])
+        #                 newSources.append(source[key])
+        #             else:
+        #                 target[newKey] = source[key]
+        #
+        #     sources = newSources
+        #     targets = newTargets
+
+    def __iter__(self):
+        return self.__dict__
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+    @property
+    def show(self):
+        print self.simpleKeys
+
+    def dumpJSON(self, outputFile=None):
+        if not outputFile:
+            outputFile = "output.json"
+
+        with open(outputFile, 'w') as fptr:
+            json.dump(self.data, fptr, indent=4)
+
+    def table(self, componentName="Net"):
+        mach = self.data["Log"]["farFieldConditions"]["mach"]
+        alpha = self.data["Log"]["farFieldConditions"]["alpha"]
+
+        cxGlobal, cyGlobal, czGlobal = self.data["FX"]["Forces"]["Coefficients"]["Total"][componentName]
+        cmxGlobal, cmyGlobal, cmzGlobal = \
+        self.data["MX"]["Moments - Moment Center"]["Coefficients"]["Total"][componentName]
+
+        cxDV = self.data["FX"]["Forces - Direction Vector"]["Coefficients"]["Total"][componentName]
+        cyDV = self.data["FY"]["Forces - Direction Vector"]["Coefficients"]["Total"][componentName]
+        czDV = self.data["FZ"]["Forces - Direction Vector"]["Coefficients"]["Total"][componentName]
+
+        cmxDV = self.data["MX"]["Moments - Moment Center Moment Axis"]["Coefficients"]["Total"][
+            componentName]
+        cmyDV = self.data["MY"]["Moments - Moment Center Moment Axis"]["Coefficients"]["Total"][
+            componentName]
+        cmzDV = self.data["MZ"]["Moments - Moment Center Moment Axis"]["Coefficients"]["Total"][
+            componentName]
+
+        titles = ['mach', 'alpha',
+                  'CX-global', 'CY-global', 'CZ-global', 'CMX-global', 'CMY-global', 'CMZ-global',
+                  'CX-dir', 'CY-dir', 'CZ-dir', 'CMX-dir', 'CMY-dir', 'CMZ-dir']
+
+        values = [mach, alpha,
+                  cxGlobal, cyGlobal, czGlobal, cmxGlobal, cmyGlobal, cmzGlobal,
+                  cxDV, cyDV, czDV, cmxDV, cmyDV, cmzDV]
+
+        return titles, values
+
+
 if __name__ == "__main__":
-
     baseDir = "specification/VISCID BLOCK - surowe"
-    outFile = "output.json"
+    outFile = "output.csv"
 
-    resultDict = dict()
+    parser = DirectoryParser(baseDir)
+    parser.load()
+    parser.dump()
 
-    parsers = {"Log": LogParser(baseDir + os.sep + "fluent_log.log"),
-               "FX": ForceParser(baseDir + os.sep + "FX"),
-               "FY": ForceParser(baseDir + os.sep + "FY"),
-               "FZ": ForceParser(baseDir + os.sep + "FZ"),
-               "MX": ForceParser(baseDir + os.sep + "MX"),
-               "MY": ForceParser(baseDir + os.sep + "MY"),
-               "MZ": ForceParser(baseDir + os.sep + "MZ"),
-               "CoPy": ForceParser(baseDir + os.sep + "CoPy", singleForce=True),
-               "CoPz": ForceParser(baseDir + os.sep + "CoPz", singleForce=True)}
+    data = Data(parser.data)
 
-    for name in parsers:
-        parser = parsers[name]
-        try:
-            parser.parse()
-        except IOError:
-            print "Parser " + name + " error.\nCouldn't open file " + os.path.basename(parser.path)
-        except Exception as e:
-            print "Parser " + name + " error.\nCouldn't parse the " + os.path.basename(
-                parser.path) + " file\n" + e.message + "\n"
+    titles, values = data.table("Net")
+    listOfData = [data, data, data]
 
-        if len(parser.output) != 0:
-            resultDict[name] = parser.output
-
-    with open(outFile, "w") as filePtr:
-        json.dump(resultDict, filePtr, indent=4)
+    listOfValues = []
+    for d in listOfData:
+        titles, values = d.table("Net")
+        listOfValues.append(values)
 
 
-    # Example of usage:
-    mach = resultDict["Log"]["farFieldConditions"]["mach"]
-    alpha = resultDict["Log"]["farFieldConditions"]["alpha"]
+    with open("output.csv", "w") as fptr:
+        writeCSV(fptr, titles, listOfValues)
 
-    cxGlobal, cyGlobal, czGlobal = resultDict["FX"]["Forces Global"]["Coefficients"]["Total"]["Net"]
-    cmxGlobal, cmyGlobal, cmzGlobal = resultDict["MX"]["Moments - Moment Center (-1.1323 0 0)"]["Coefficients"]["Total"]["Net"]
 
-    cxDV = resultDict["FX"]["Forces - Direction Vector (1 0 0)"]["Coefficients"]["Total"]["Net"]
-    cyDV = resultDict["FY"]["Forces - Direction Vector (0 1 0)"]["Coefficients"]["Total"]["Net"]
-    czDV = resultDict["FZ"]["Forces - Direction Vector (0 0 -1)"]["Coefficients"]["Total"]["Net"]
-
-    cmxDV = resultDict["MX"]["Moments - Moment Center (-1.1323 0 0) Moment Axis (1 0 0)"]["Coefficients"]["Total"]["Net"]
-    cmyDV = resultDict["MY"]["Moments - Moment Center (-1.1323 0 0) Moment Axis (0 1 0)"]["Coefficients"]["Total"]["Net"]
-    cmzDV = resultDict["MZ"]["Moments - Moment Center (-1.1323 0 0) Moment Axis (0 0 1)"]["Coefficients"]["Total"]["Net"]
-
-    titles = ['mach', 'alpha',
-              'CX-global', 'CY-global', 'CZ-global', 'CMX-global', 'CMY-global', 'CMZ-global',
-              'CX-dir', 'CY-dir', 'CZ-dir', 'CMX-dir', 'CMY-dir', 'CMZ-dir']
-    data = [[mach, alpha,
-            cxGlobal, cyGlobal, czGlobal, cmxGlobal, cmyGlobal, cmzGlobal,
-            cxDV, cyDV, czDV, cmxDV, cmyDV, cmzDV]]
-
-    with open("output.csv", "w") as f:
-        writeCSV(f, titles, data)
+    # print data.FX.Forces.Coefficients.Total.simpleKeys
+    # print data["FX"]["Forces - Direction Vector"]["Coefficients"]["Total"]["glowica"]
+    # print data.FX.Forces_Direction_Vector
 
