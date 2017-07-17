@@ -12,22 +12,22 @@ define/solver/density-based-implicit
 /solve/monitors/convergence/add-edit cy-1 1e-06 0 5 yes no 
 /solve/monitors/convergence/add-edit cm-1 1e-06 0 5 yes no 
 /define/boundary-conditions/list-zones 
-/define/boundary-conditions/pressure-far-field pressurefarfield no 89875. no TEMPLATE_Mach no 281.65 yes no TEMPLATE_DIRX no TEMPLATE_DIRY no TEMPLATE_DIRZ no no yes 0.1 50. 
+/define/boundary-conditions/pressure-far-field pressurefarfield no 89875. no 1.5 no 281.65 yes no 0.9 no 0.1 no 0.0 no no yes 0.1 50. 
 /solve/set/set-solution-steering 100 100 30 0.25 2 0.75 5 1000 1000 1000 1000 1000 0.75 yes 
-/solve/monitors/force/set-drag-monitor cd-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cd-1-history" yes 2 no TEMPLATE_DIRX 0. TEMPLATE_DIRZ 
-/solve/monitors/force/set-lift-monitor cl-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cl-1-history" yes 3 no -TEMPLATE_DIRZ 0. TEMPLATE_DIRX. 
-/solve/monitors/force/set-lift-monitor cy-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cy-1-history" no no 0. TEMPLATE_DIRY 0. 
+/solve/monitors/force/set-drag-monitor cd-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cd-1-history" yes 2 no 0.9 0. 0.0 
+/solve/monitors/force/set-lift-monitor cl-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cl-1-history" yes 3 no -0.0 0. 0.9. 
+/solve/monitors/force/set-lift-monitor cy-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cy-1-history" no no 0. 0.1 0. 
 /solve/monitors/force/list-monitors 
 /report/reference-values/compute/pressure-far-field pressurefarfield 
 /report/reference-values/list
 /solve/initialize/initialize-flow
 /solve/iterate 10000
-/report/forces/wall-forces yes TEMPLATE_DIRX 0 0 yes "FX" 
+/report/forces/wall-forces yes 0.9 0 0 yes "FX" 
 /report/forces/wall-forces yes 0 TEMPLATE DIRY 0 yes "FY" 
-/report/forces/wall-forces yes 0 0 TEMPLATE_DIRZ yes "FZ" 
-/report/forces/wall-moments yes TEMPLATE_MOMC 0 0 1 0 0 yes "MX" 
-/report/forces/wall-moments yes TEMPLATE_MOMC 0 0 0 1 0 yes "MY" 
-/report/forces/wall-moments yes TEMPLATE_MOMC 0 0 0 0 1 yes "MZ" 
+/report/forces/wall-forces yes 0 0 0.0 yes "FZ" 
+/report/forces/wall-moments yes 0.0, 0.0, 0.0 0 0 1 0 0 yes "MX" 
+/report/forces/wall-moments yes 0.0, 0.0, 0.0 0 0 0 1 0 yes "MY" 
+/report/forces/wall-moments yes 0.0, 0.0, 0.0 0 0 0 0 1 yes "MZ" 
 /report/forces/pressure-center yes no yes 0 yes "CoPy" 
 /report/forces/pressure-center yes no no yes 0 yes "CoPz"
 wc TEST_output.cas

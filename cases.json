@@ -2,9 +2,10 @@
 {
   "test_case":
   {
-    "mach": 1.5,
-    "dirX": 0.9,
-    "dirY": 0.1,
-    "dirZ": 0.0
+    "Mach": 1.5,
+    "DIRX": 0.9,
+    "DIRY": 0.1,
+    "DIRZ": 0.0,
+	"MOMC": "0.0, 0.0, 0.0"
   }
 }

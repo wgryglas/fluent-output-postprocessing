@@ -1,0 +1,35 @@
+rc /mnt/fhgfs/users/bolszanski/Feniks/Medium_Ma_3_85_FMG.cas 
+/solve/set/discretization-scheme/amg-c 1 
+/solve/set/discretization-scheme/k 1 
+/solve/set/discretization-scheme/omega 1
+/solve/monitors/set-average-over cd-1 250 
+/solve/monitors/set-average-over cl-1 250 
+/solve/monitors/set-average-over cy-1 250 
+/solve/monitors/set-average-over cm-1 250 
+/solve/monitors/convergence/add-edit cd-1 1e-06 0 5 yes no 
+/solve/monitors/convergence/add-edit cl-1 1e-06 0 5 yes no 
+/solve/monitors/convergence/add-edit cy-1 1e-06 0 5 yes no 
+/solve/monitors/convergence/add-edit cm-1 1e-06 0 5 yes no 
+/define/boundary-conditions/list-zones 
+/define/boundary-conditions/pressure-far-field pressurefarfield no 89875. no TEMPLATE_mach no 281.65 yes no TEMPLATE_dirX no TEMPLATE_dirY no TEMPLATE_dirZ no no yes 0.1 50.
+/solve/set/set-solution-steering 100 100 30 0.25 2 0.75 5 1000 1000 1000 1000 1000 0.75 yes 
+/solve/monitors/force/set-drag-monitor cd-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cd-1-history" yes 2 no 0.98480775301220805936674302458952 -0.17364817766693034885171662676931 0. 
+/solve/monitors/force/set-lift-monitor cl-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cl-1-history" yes 3 no 0.17364817766693034885171662676931 0.98480775301220805936674302458952 0. 
+/solve/monitors/force/set-lift-monitor cy-1 yes gardziel_dyszy glowica korpus ster1 ster2 ster3 ster4 tail zapalnik () yes yes "cy-1-history" no no 0. 0. -1. 
+/solve/monitors/force/list-monitors 
+/report/reference-values/compute/pressure-far-field pressurefarfield 
+/report/reference-values/list
+/solve/initialize/initialize-flow
+/solve/iterate 10000
+/report/forces/wall-forces yes 0.98480775301220805936674302458952 -0.17364817766693034885171662676931 0 yes "FX" 
+/report/forces/wall-forces yes 0.17364817766693034885171662676931 0.98480775301220805936674302458952 0 yes "FY" 
+/report/forces/wall-forces yes 0 0 -1 yes "FZ" 
+/report/forces/wall-moments yes -1.1323 0 0 1 0 0 yes "MX" 
+/report/forces/wall-moments yes -1.1323 0 0 0 1 0 yes "MY" 
+/report/forces/wall-moments yes -1.1323 0 0 0 0 1 yes "MZ" 
+/report/forces/pressure-center yes no yes 0 yes "CoPy" 
+/report/forces/pressure-center yes no no yes 0 yes "CoPz"
+wc Medium_Ma_1_50_alfa_10_10k.cas
+wd Medium_Ma_1_50_alfa_10_10k.dat
+exit
+yes
