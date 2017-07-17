@@ -1,6 +1,14 @@
 
 {
-  "test_case":
+  "test_case_1":
+  {
+    "Mach": 1.5,
+    "DIRX": 0.9,
+    "DIRY": 0.1,
+    "DIRZ": 0.0,
+	"MOMC": "0.0, 0.0, 0.0"
+  },
+  "test_case_2":
   {
     "Mach": 1.5,
     "DIRX": 0.9,

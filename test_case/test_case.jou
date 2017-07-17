@@ -23,7 +23,7 @@ define/solver/density-based-implicit
 /solve/initialize/initialize-flow
 /solve/iterate 10000
 /report/forces/wall-forces yes 0.9 0 0 yes "FX" 
-/report/forces/wall-forces yes 0 TEMPLATE DIRY 0 yes "FY" 
+/report/forces/wall-forces yes 0 0.1 0 yes "FY" 
 /report/forces/wall-forces yes 0 0 0.0 yes "FZ" 
 /report/forces/wall-moments yes 0.0, 0.0, 0.0 0 0 1 0 0 yes "MX" 
 /report/forces/wall-moments yes 0.0, 0.0, 0.0 0 0 0 1 0 yes "MY" 
