@@ -70,11 +70,12 @@ if __name__ == "__main__":
                     nvars.append(len(values))
                 else:
                     nvars.append(1)
+                    case[variable] = [case[variable]]
             else:
                 nvars.append(1)
+                case[variable] = [case[variable]]
 
         case["num_cases"] = reduce(lambda a, b: a*b, nvars, 1)
-
 
 
     setupExpaned = dict()
@@ -82,7 +83,10 @@ if __name__ == "__main__":
     for name in setup:
 
         if setup[name]["num_cases"] == 1:
-            setupExpaned[name] = setup[name]
+            setupExpaned[name] = dict()
+            for varname in setup[name]:
+                if varname != "num_cases":
+                    setupExpaned[name][varname] = setup[name][varname][0] #convert created lists to single values
             continue
 
         ncases = setup[name]["num_cases"]
@@ -91,21 +95,40 @@ if __name__ == "__main__":
                 newName = name + "_" + str(num)
                 setupExpaned[newName] = dict()
 
-        for variable in setup[name]:
-            if variable == "num_cases":
-                continue
 
-            val = setup[name][variable]
-            if isinstance(val, list):
-                values = list()
-                for i in range(ncases / len(val)):
-                    values += val
-            else:
-                values = [val for i in range(ncases)]
+        # Now generate loops in the loops inside single while :)
+        varNames = [varname for varname in setup[name] if varname != "num_cases"]
+        levelNames = {i: varname for i, varname in enumerate(varNames)}
+        levelPosition = [0 for i in range(len(varNames))]
+        levelMaxPositions = [len(setup[name][varname]) for varname in varNames]
+        caseId = 0
+        level = 0
+        endLevel = len(varNames)
+        while caseId < ncases:
+            caseName = name + "_" + str(caseId)
+            setupExpaned[caseName][levelNames[level]] = setup[name][levelNames[level]][levelPosition[level]]
 
-            for num in range(setup[name]["num_cases"]):
-                newName = name + "_" + str(num)
-                setupExpaned[newName][variable] = values[num]
+            if level == endLevel-1:
+                levelPosition[level] += 1
+
+            if levelPosition[level] == levelMaxPositions[level]: # and level > 0 it should never happend due to while limit
+
+                toDecrease = level-1
+
+                while toDecrease > 0:
+                    if levelPosition[toDecrease] + 1 < levelMaxPositions[toDecrease]:
+                        levelPosition[toDecrease] += 1
+                        toDecrease = 0
+                    else:
+                        levelPosition[toDecrease] = 0
+                        toDecrease -= 1
+
+                levelPosition[level] = 0
+
+            level += 1
+            if level == endLevel:
+                caseId += 1
+                level = 0
 
     setup = setupExpaned
 
