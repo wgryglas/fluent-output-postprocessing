@@ -32,7 +32,7 @@ If the variable is has value [...] it means that the variable will be placed mul
 
 The text in the variable looking like number:number:number indicates linear space of values. In above example
   the "DIRX" variable has value "1:0.1:2", what would be translated as list of subsequent numbers with step equal to 0.1
-  - [1, 1.1, 1.2, 1.3, 1.4, 1.5,  1.6, 1.7, 1.8, 1.9, 2]. This list, of length 11 elements would result also in 9 cases.
+  - [1, 1.1, 1.2, 1.3, 1.4, 1.5,  1.6, 1.7, 1.8, 1.9, 2]. This list, of length 11 elements would result also in 11 additional cases.
 
   Together with 3 values of "Mach" variable list the total number of generated cases for above example
   would be equal 3 * 11 = 33 cases.
