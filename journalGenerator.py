@@ -151,13 +151,12 @@ if __name__ == "__main__":
         for line in template.readlines():
             res = varnameRegex.findall(line)
             if len(res) > 0:
-                toWrite = line
                 for case in setup:
+                    toWrite = line
                     for var in res:
                         value = setup[case][var[1]]
                         toWrite = re.sub(var[0], str(value), toWrite)
                     files[case].write(toWrite)
-
             else:
                 for f in files.values():
                     f.write(line)
